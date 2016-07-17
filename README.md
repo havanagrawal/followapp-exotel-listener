@@ -13,9 +13,14 @@ There are two service endpoints that this service exposes:
 
 A .war file will be generated, which can be deployed to the container of your choice. (I use Tomcat 9)
 
+## Eclipse
+1. Download M2E, and import the project into Eclipse directly using "Import existing Maven project"
+2. You also need to ensure that the output folder for src/main/resources is set to WEB-INF/classes, or the audio files will not be found.
+
 ## Using POSTMAN
 To test these services, I use the Chrome plugin POSTMAN
 Some example URL's
+
     GET: http://localhost:8080/exotelListener/webapi/exotel/audioresponse
     HEAD: http://localhost:8080/exotelListener/webapi/exotel/audioresponse
     GET: http://localhost:8080/exotelListener/webapi/exotel/audiomessage
