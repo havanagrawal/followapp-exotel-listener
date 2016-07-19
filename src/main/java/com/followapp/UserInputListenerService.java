@@ -1,13 +1,20 @@
 package com.followapp;
 
 import java.io.File;
+import java.io.IOException;
+import java.net.URL;
+import java.util.HashMap;
+import java.util.Map;
 
+import javax.sound.sampled.UnsupportedAudioFileException;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+
+import com.followapp.appender.WavAppender;
 
 /**
  * Root resource (exposed at "exotel" path)
@@ -17,19 +24,30 @@ public class UserInputListenerService {
 
 	public static final MediaType WAV = new MediaType("audio", "wav");
 
+	public static final Map<String, File> audioMap = new HashMap<>();
+	
 	/**
 	 * Handle user input from the "Gather" flow of the Exotel API
 	 *
-	 * @return A 200-OK Response if the input was processed successfully
+	 * @return A 200-OK Response if user pressed 1, else return 302-Found
 	 */
 
 	@GET
 	@Path("userinput")
-	public Response getResponseOfUser(@QueryParam("digits") String input) {
+	public Response getResponseOfUser(@QueryParam("digits") String input,
+									  @QueryParam("From") String from,
+									  @QueryParam("To") String to,
+									  @QueryParam("Direction") String direction) {
 		// TODO: Persist the response to the DB
-		// TODO: Send a 302 Response in case the user presses 2
 		System.out.println("We got query parameter: " + input);
-		return Response.status(Response.Status.OK).build();
+		
+		int response = Integer.parseInt(input.replace("\"", ""));
+		if (response == 1) {
+			return Response.status(Response.Status.OK).build();
+		}
+		else {
+			return Response.status(Response.Status.FOUND).build();			
+		}
 	}
 
 	/**
@@ -42,6 +60,8 @@ public class UserInputListenerService {
 	 * 
 	 * @param user
 	 * @return
+	 * @throws IOException 
+	 * @throws UnsupportedAudioFileException 
 	 */
 	@GET
 	@Path("audioresponse")
@@ -49,7 +69,33 @@ public class UserInputListenerService {
 	public Response getAudioResponse(@QueryParam("CallSid") String callSid, 
 									 @QueryParam("From") String from,
 									 @QueryParam("To") String exotelNumber, 
-									 @QueryParam("DialWhomNumber") String beingCalled) {
+									 @QueryParam("DialWhomNumber") String beingCalled) throws UnsupportedAudioFileException, IOException {
+		
+		// TODO: Get the URL's of the files, depending on the phone number (beingCalled)
+		// Probably from the database
+		// Assume we have greetingUrl, nameUrl, childGreetUrl, childNameUrl, 
+		// vaccinePrefixUrl, vaccineUrl, noOfDaysUrl, suffixUrl  
+		// Where greetingUrl, childGreetUrl, vaccinePrefixUrl and suffixUrl are constants
+		
+		String name = "Havan";
+		String childName = "Baby";
+		String vaccine = "Awesomeness";
+		int noOfDays = 20;
+		String key = "0dcf43ba6349422c816b2ce91a1ef0cb";
+		
+		URL greetingUrl = new URL("http://api.voicerss.org/?key=" + key + "&src=hello&hl=en-in&c=WAV&f=8khz_16bit_mono");
+		URL nameUrl = new URL("http://api.voicerss.org/?key=" + key + "&src=" + name + "&hl=en-in&c=WAV&f=8khz_16bit_mono");
+		URL childGreetUrl = new URL("http://api.voicerss.org/?key=" + key + "&src=your%20child%20&hl=en-in&c=WAV&f=8khz_16bit_mono");
+		URL childNameUrl = new URL("http://api.voicerss.org/?key=" + key + "&src=" + childName + "&hl=en-in&c=WAV&f=8khz_16bit_mono");
+		URL vaccinePrefixUrl = new URL("http://api.voicerss.org/?key=" + key + "&src=is%20yet%20to%20take%20the%20vaccine%20&hl=en-in&c=WAV&f=8khz_16bit_mono");
+		URL vaccineUrl = new URL("http://api.voicerss.org/?key=" + key + "&src=" + vaccine + "&hl=en-in&c=WAV&f=8khz_16bit_mono");
+		URL noOfDaysUrl = new URL("http://api.voicerss.org/?key=" + key + "&src=in%20" + noOfDays + "%20days&hl=en-in&c=WAV&f=8khz_16bit_mono");
+		URL suffixUrl = new URL("http://api.voicerss.org/?key=" + key + "&src=press%20one%20if%20you%20have%20taken%20vaccine%20%20else%20press%20no&hl=en-in&c=WAV&f=8khz_16bit_mono");
+		
+		File audioMessageFile = WavAppender.fromUrls(greetingUrl, nameUrl, childGreetUrl, childNameUrl, vaccinePrefixUrl, vaccineUrl, noOfDaysUrl, suffixUrl);
+		
+		audioMap.put(callSid, audioMessageFile);
+		
 		return Response.ok("http://localhost:8080/exotelListener/webapi/exotel/audiomessage", MediaType.TEXT_PLAIN_TYPE)
 				.build();
 	}
@@ -71,11 +117,9 @@ public class UserInputListenerService {
 							 @QueryParam("To") String exotelNumber, 
 							 @QueryParam("DialWhomNumber") String beingCalled) {
 		// TODO: Figure out how we store these audio files
-		// TODO: Write logic to retrieve file based on params
-		// For now, we return a static file
 		try {
-			File message = new File(this.getClass().getResource("/audio/havan.wav").getFile().replace("%20", " "));
-			return Response.ok(message, WAV).build();
+			//File message = new File(this.getClass().getResource("/audio/havan.wav").getFile().replace("%20", " "));
+			return Response.ok(audioMap.get(callSid), WAV).build();
 		} catch (NullPointerException npe) {
 			npe.printStackTrace();
 			return Response.status(Response.Status.NO_CONTENT).build();
