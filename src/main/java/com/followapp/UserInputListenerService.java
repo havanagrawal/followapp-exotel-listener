@@ -7,13 +7,18 @@ import java.util.HashMap;
 import java.util.Map;
 
 import javax.sound.sampled.UnsupportedAudioFileException;
+import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
+import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.followapp.appender.WavAppender;
 
 /**
@@ -24,14 +29,27 @@ public class UserInputListenerService {
 
 	public static final MediaType WAV = new MediaType("audio", "wav");
 
+	// Ideally, in the calling service, we can populate this
+	// With phone number -> File mappings
+	// And then start making calls
+	// That way, our response time is faster
 	public static final Map<String, File> audioMap = new HashMap<>();
+	
+	@POST
+	@Path("call")
+	@Consumes(MediaType.APPLICATION_JSON)
+	public void callUser(String input) throws JsonParseException, JsonMappingException, IOException {
+		System.out.println("Got JSON input: " + input);
+		ObjectMapper mapper = new ObjectMapper();
+		CallDetails callDetails = mapper.readValue(input, CallDetails.class);
+		System.out.println("Calling " + callDetails.getPhoneNumber());
+	}
 	
 	/**
 	 * Handle user input from the "Gather" flow of the Exotel API
 	 *
 	 * @return A 200-OK Response if user pressed 1, else return 302-Found
 	 */
-
 	@GET
 	@Path("userinput")
 	public Response getResponseOfUser(@QueryParam("digits") String input,
@@ -96,7 +114,7 @@ public class UserInputListenerService {
 		
 		audioMap.put(callSid, audioMessageFile);
 		
-		return Response.ok("http://localhost:8080/exotelListener/webapi/exotel/audiomessage", MediaType.TEXT_PLAIN_TYPE)
+		return Response.ok("http://followapp-havana.herokuapp.com/webapi/exotel/audiomessage", MediaType.TEXT_PLAIN_TYPE)
 				.build();
 	}
 
