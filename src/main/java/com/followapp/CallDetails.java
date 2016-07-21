@@ -1,69 +1,44 @@
 package com.followapp;
 
-import java.net.MalformedURLException;
-import java.net.URL;
-
 import javax.xml.bind.annotation.XmlRootElement;
 
 @XmlRootElement
 public class CallDetails {
 
 	private String phoneNumber;
-	private URL guardianNameAudio;
-	private URL childNameAudio;
-	private URL vaccineNameAudio;
-	private URL dateForVaccineAudio;
-
-	public CallDetails() {
-	}
-
-	public CallDetails(String phoneNumber, String guardianNameAudioUrl, String childNameAudioUrl,
-			String vaccineNameAudioUrl, String dateForVaccineAudioUrl) throws MalformedURLException {
-		super();
-		this.phoneNumber = phoneNumber;
-		this.guardianNameAudio = new URL(guardianNameAudioUrl);
-		this.childNameAudio = new URL(childNameAudioUrl);
-		this.vaccineNameAudio = new URL(vaccineNameAudioUrl);
-		this.dateForVaccineAudio = new URL(dateForVaccineAudioUrl);
-	}
+	private String guardianName;
+	private String childName;
+	private String vaccineName;
+	private String dateForVaccine;
 	
 	public String getPhoneNumber() {
 		return phoneNumber;
 	}
-
 	public void setPhoneNumber(String phoneNumber) {
 		this.phoneNumber = phoneNumber;
 	}
-
-	public URL getGuardianNameAudio() {
-		return guardianNameAudio;
+	public String getGuardianName() {
+		return guardianName;
 	}
-
-	public void setGuardianNameAudio(String guardianNameAudioUrl) throws MalformedURLException {
-		this.guardianNameAudio = new URL(guardianNameAudioUrl);
+	public void setGuardianName(String guardianName) {
+		this.guardianName = guardianName;
 	}
-
-	public URL getChildNameAudio() {
-		return childNameAudio;
+	public String getChildName() {
+		return childName;
 	}
-
-	public void setChildNameAudio(URL childNameAudio) {
-		this.childNameAudio = childNameAudio;
+	public void setChildName(String childName) {
+		this.childName = childName;
 	}
-
-	public URL getVaccineNameAudio() {
-		return vaccineNameAudio;
+	public String getVaccineName() {
+		return vaccineName;
 	}
-
-	public void setVaccineNameAudio(String vaccineNameAudioUrl) throws MalformedURLException {
-		this.vaccineNameAudio = new URL(vaccineNameAudioUrl);
+	public void setVaccineName(String vaccineName) {
+		this.vaccineName = vaccineName;
 	}
-
-	public URL getDateForVaccineAudio() {
-		return dateForVaccineAudio;
+	public String getDateForVaccine() {
+		return dateForVaccine;
 	}
-
-	public void setDateForVaccineAudio(String dateForVaccineAudioUrl) throws MalformedURLException {
-		this.dateForVaccineAudio = new URL(dateForVaccineAudioUrl);
+	public void setDateForVaccine(String dateForVaccine) {
+		this.dateForVaccine = dateForVaccine;
 	}
 }

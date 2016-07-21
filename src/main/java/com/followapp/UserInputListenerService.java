@@ -2,6 +2,7 @@ package com.followapp;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
@@ -21,6 +22,8 @@ import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.followapp.appender.WavAppender;
 
+// TODO: Replace all sysouts with logging
+
 /**
  * Root resource (exposed at "exotel" path)
  */
@@ -29,20 +32,54 @@ public class UserInputListenerService {
 
 	public static final MediaType WAV = new MediaType("audio", "wav");
 
-	// Ideally, in the calling service, we can populate this
-	// With phone number -> File mappings
-	// And then start making calls
-	// That way, our response time is faster
 	public static final Map<String, File> audioMap = new HashMap<>();
-	
+	public static final Map<String, CallDetails> callDetailMap = new HashMap<>();
+
+	// 52.42.109.161 is the AWS host
+	public static final String audioBasePath = "52.42.109.161/audioresources/";
+
 	@POST
 	@Path("call")
 	@Consumes(MediaType.APPLICATION_JSON)
-	public void callUser(String input) throws JsonParseException, JsonMappingException, IOException {
-		System.out.println("Got JSON input: " + input);
+	public void callUser(String input) throws JsonParseException, JsonMappingException, IOException, UnsupportedAudioFileException {
+		System.out.println("[call] Got JSON input: " + input);
+		
 		ObjectMapper mapper = new ObjectMapper();
 		CallDetails callDetails = mapper.readValue(input, CallDetails.class);
-		System.out.println("Calling " + callDetails.getPhoneNumber());
+		callDetailMap.put(callDetails.getPhoneNumber(), callDetails);
+
+		generateAudioMessageIfNotGenerated(callDetails.getPhoneNumber());
+		
+		System.out.println("[call] Calling " + callDetails.getPhoneNumber());
+		// TODO: Send the GET request to Exotel link
+		// We need to store the api key in a properties file
+		// And read it from there
+	}
+
+	public void generateAudioMessageIfNotGenerated(String phoneNumber) throws UnsupportedAudioFileException, IOException {
+		if (!audioMap.containsKey(phoneNumber)) {
+			CallDetails callDetails = callDetailMap.get(phoneNumber);
+			
+			URL guardianNameUrl = createAudioUrl(callDetails.getGuardianName());
+			URL childNameUrl = createAudioUrl(callDetails.getChildName());
+			URL vaccineUrl = createAudioUrl(callDetails.getVaccineName());
+			//TODO: URL dateUrl = createAudioUrl(callDetails.getDateForVaccine()); 
+
+			File audioMessageFile = WavAppender.fromUrls(guardianNameUrl, childNameUrl, vaccineUrl);
+			audioMap.put(callDetails.getPhoneNumber(), audioMessageFile);			
+		}
+	}
+	
+	public URL createAudioUrl(String word) {
+		URL wordUrl = null;
+		try {
+			wordUrl = new URL(audioBasePath + word);
+		}
+		catch (MalformedURLException mue) {
+			// TODO: Try to create a URL using the voicerss API
+			mue.printStackTrace();
+		}
+		return wordUrl;		
 	}
 	
 	/**
@@ -52,19 +89,19 @@ public class UserInputListenerService {
 	 */
 	@GET
 	@Path("userinput")
-	public Response getResponseOfUser(@QueryParam("digits") String input,
-									  @QueryParam("From") String from,
-									  @QueryParam("To") String to,
-									  @QueryParam("Direction") String direction) {
+	public Response getResponseOfUser(
+			@QueryParam("digits") String input, 
+			@QueryParam("From") String from,
+			@QueryParam("To") String to, 
+			@QueryParam("Direction") String direction) {
 		// TODO: Persist the response to the DB
-		System.out.println("We got query parameter: " + input);
-		
+		System.out.println("[userinput] We got query parameter: " + input);
+
 		int response = Integer.parseInt(input.replace("\"", ""));
 		if (response == 1) {
 			return Response.status(Response.Status.OK).build();
-		}
-		else {
-			return Response.status(Response.Status.FOUND).build();			
+		} else {
+			return Response.status(Response.Status.FOUND).build();
 		}
 	}
 
@@ -78,44 +115,31 @@ public class UserInputListenerService {
 	 * 
 	 * @param user
 	 * @return
-	 * @throws IOException 
-	 * @throws UnsupportedAudioFileException 
+	 * @throws IOException
+	 * @throws UnsupportedAudioFileException
 	 */
 	@GET
 	@Path("audioresponse")
 	@Produces(MediaType.TEXT_PLAIN)
-	public Response getAudioResponse(@QueryParam("CallSid") String callSid, 
-									 @QueryParam("From") String from,
-									 @QueryParam("To") String exotelNumber, 
-									 @QueryParam("DialWhomNumber") String beingCalled) throws UnsupportedAudioFileException, IOException {
+	public Response getAudioResponse(
+			@QueryParam("CallSid") String callSid, 
+			@QueryParam("From") String from,
+			@QueryParam("To") String exotelNumber, 
+			@QueryParam("DialWhomNumber") String beingCalled)
+			throws UnsupportedAudioFileException, IOException {
+
+		System.out.println("[audioresponse] CallSid: " + callSid);
+		System.out.println("[audioresponse] From: " + from);
+		System.out.println("[audioresponse] exotelNumber: " + exotelNumber);
+		System.out.println("[audioresponse] DialWhomNumber: " + beingCalled);
 		
-		// TODO: Get the URL's of the files, depending on the phone number (beingCalled)
-		// Probably from the database
-		// Assume we have greetingUrl, nameUrl, childGreetUrl, childNameUrl, 
-		// vaccinePrefixUrl, vaccineUrl, noOfDaysUrl, suffixUrl  
-		// Where greetingUrl, childGreetUrl, vaccinePrefixUrl and suffixUrl are constants
-		
-		String name = "Havan";
-		String childName = "Baby";
-		String vaccine = "Awesomeness";
-		int noOfDays = 20;
-		String key = "0dcf43ba6349422c816b2ce91a1ef0cb";
-		
-		URL greetingUrl = new URL("http://api.voicerss.org/?key=" + key + "&src=hello&hl=en-in&c=WAV&f=8khz_16bit_mono");
-		URL nameUrl = new URL("http://api.voicerss.org/?key=" + key + "&src=" + name + "&hl=en-in&c=WAV&f=8khz_16bit_mono");
-		URL childGreetUrl = new URL("http://api.voicerss.org/?key=" + key + "&src=your%20child%20&hl=en-in&c=WAV&f=8khz_16bit_mono");
-		URL childNameUrl = new URL("http://api.voicerss.org/?key=" + key + "&src=" + childName + "&hl=en-in&c=WAV&f=8khz_16bit_mono");
-		URL vaccinePrefixUrl = new URL("http://api.voicerss.org/?key=" + key + "&src=is%20yet%20to%20take%20the%20vaccine%20&hl=en-in&c=WAV&f=8khz_16bit_mono");
-		URL vaccineUrl = new URL("http://api.voicerss.org/?key=" + key + "&src=" + vaccine + "&hl=en-in&c=WAV&f=8khz_16bit_mono");
-		URL noOfDaysUrl = new URL("http://api.voicerss.org/?key=" + key + "&src=in%20" + noOfDays + "%20days&hl=en-in&c=WAV&f=8khz_16bit_mono");
-		URL suffixUrl = new URL("http://api.voicerss.org/?key=" + key + "&src=press%20one%20if%20you%20have%20taken%20vaccine%20%20else%20press%20no&hl=en-in&c=WAV&f=8khz_16bit_mono");
-		
-		File audioMessageFile = WavAppender.fromUrls(greetingUrl, nameUrl, childGreetUrl, childNameUrl, vaccinePrefixUrl, vaccineUrl, noOfDaysUrl, suffixUrl);
-		
-		audioMap.put(callSid, audioMessageFile);
-		
-		return Response.ok("http://followapp-havana.herokuapp.com/webapi/exotel/audiomessage", MediaType.TEXT_PLAIN_TYPE)
+		Response response = Response
+				.ok("https://followapp-havana.herokuapp.com/webapi/exotel/audiomessage", MediaType.TEXT_PLAIN_TYPE)
 				.build();
+
+		System.out.println("Sending response with headers: " + response.getHeaders().toString());
+
+		return response;
 	}
 
 	/**
@@ -130,14 +154,13 @@ public class UserInputListenerService {
 	@GET
 	@Path("audiomessage")
 	@Produces("audio/wav")
-	public Response getAudio(@QueryParam("CallSid") String callSid, 
-							 @QueryParam("From") String from,
-							 @QueryParam("To") String exotelNumber, 
-							 @QueryParam("DialWhomNumber") String beingCalled) {
-		// TODO: Figure out how we store these audio files
+	public Response getAudio(
+			@QueryParam("CallSid") String callSid, 
+			@QueryParam("From") String from,
+			@QueryParam("To") String exotelNumber, 
+			@QueryParam("DialWhomNumber") String beingCalled) {
 		try {
-			//File message = new File(this.getClass().getResource("/audio/havan.wav").getFile().replace("%20", " "));
-			return Response.ok(audioMap.get(callSid), WAV).build();
+			return Response.ok(audioMap.get(from), WAV).build();
 		} catch (NullPointerException npe) {
 			npe.printStackTrace();
 			return Response.status(Response.Status.NO_CONTENT).build();
