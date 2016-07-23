@@ -1,21 +1,28 @@
 # A RESTful listener service for FollowApp
 
 ## Overview
-A simple service that responds to GET requests
+A simple service exposed to Exotel that responds to GET/POST requests
 
-There are two service endpoints that this service exposes:
-1. Generate a response based on the user's input on the "Gather" applet of the Exotel workflow
-2. Generate and return an audio file based on query parameters passed.
+There are three service endpoints that this service exposes:
+
+1. GET: Generate a response based on the user's input on the "Gather" applet of the Exotel workflow (webapi/exotel/userinput)
+2. GET: Generate and return an audio file based on query parameters passed. (webapi/exotel/audioresponse)
+3. POST: Call the user, specified via a JSON object. (webapi/exotel/call)
 
 ## Build using Maven
 
     mvn clean package
 
-A .war file will be generated, which can be deployed to the container of your choice. (I use Tomcat 9)
+A .war file will be generated, which can be deployed to the container of your choice.
+
+## Deployment on heroku
+    
+    heroku deploy:war --war exotelListener.war --app <your-app_name>
 
 ## Eclipse
 1. Download M2E, and import the project into Eclipse directly using "Import existing Maven project"
-2. You also need to ensure that the output folder for src/main/resources is set to WEB-INF/classes, or the audio files will not be found.
+2. You need to define two properties files, exotel.properties containing the sid and token, and audio.properties, containing the base path to look for audio files.
+3. You also need to ensure that the output folder for src/main/resources is set to WEB-INF/classes, or the properties files will not be found.
 
 ## Using POSTMAN
 To test these services, I use the Chrome plugin POSTMAN
@@ -23,8 +30,8 @@ Some example URL's
 
     GET: http://localhost:8080/exotelListener/webapi/exotel/audioresponse
     HEAD: http://localhost:8080/exotelListener/webapi/exotel/audioresponse
-    GET: http://localhost:8080/exotelListener/webapi/exotel/audiomessage
     GET: http://localhost:8080/exotelListener/webapi/exotel/userinput?digits=2
+    POST: http://localhost:8080/exotelListener/webapi/exotel/call
 
 ## Documentation for Exotel API
 
@@ -32,8 +39,9 @@ Some example URL's
 2. http://support.exotel.in/support/solutions/articles/48285-greeting-using-dynamic-text-or-audio-from-url
 
 ## TODO List
-	1. Look for a file sharing/hosting service for audio files
-	2. Implement logic for retrieving audio files based on input params (currently, all QueryParams are ignored)
-	3. Write tests
-	4. Deploy this war on a publicly hosted container (Heroku/Openshift or some other)
+
+1. Look for a file sharing/hosting service for audio files
+2. Implement logic for retrieving audio files based on input params (currently, all QueryParams are ignored)
+3. Write tests
+4. Deploy this war on a publicly hosted container (Heroku/Openshift or some other)
 
