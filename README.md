@@ -1,4 +1,4 @@
-# A RESTful listener service for FollowApp
+# A RESTful listener service for FollowApp's interaction with Exotel
 
 ## Overview
 A simple service exposed to Exotel that responds to GET/POST requests
@@ -21,8 +21,8 @@ A .war file will be generated, which can be deployed to the container of your ch
 
 ## Eclipse
 1. Download M2E, and import the project into Eclipse directly using "Import existing Maven project"
-2. You need to define two properties files, exotel.properties containing the sid and token, and audio.properties, containing the base path to look for audio files.
-3. You also need to ensure that the output folder for src/main/resources is set to WEB-INF/classes, or the properties files will not be found.
+2. You need to define two properties files in src/main/resources, exotel.properties containing the sid and token, and audio.properties, containing the base path to look for audio files.
+3. You also need to ensure that the output folder for src/main/resources is set to WEB-INF/classes, or the properties files will not be found. Ideally, this should be done via Maven, but I don't know how.
 
 ## Using POSTMAN
 To test these services, I use the Chrome plugin POSTMAN
@@ -35,13 +35,11 @@ Some example URL's
 
 ## Documentation for Exotel API
 
-1. http://support.exotel.in/support/solutions/articles/48283-working-with-passthru-applet
-2. http://support.exotel.in/support/solutions/articles/48285-greeting-using-dynamic-text-or-audio-from-url
+1. http://support.exotel.in/support/solutions/articles/48278-outbound-call-to-connect-a-customer-to-an-app 
+2. http://support.exotel.in/support/solutions/articles/48283-working-with-passthru-applet
+3. http://support.exotel.in/support/solutions/articles/48285-greeting-using-dynamic-text-or-audio-from-url
 
 ## TODO List
 
-1. Look for a file sharing/hosting service for audio files
-2. Implement logic for retrieving audio files based on input params (currently, all QueryParams are ignored)
-3. Write tests
-4. Deploy this war on a publicly hosted container (Heroku/Openshift or some other)
+1. Integrate with the scheduling service, that will trigger the call function
 

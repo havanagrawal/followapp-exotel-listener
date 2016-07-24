@@ -22,7 +22,6 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
 
 import com.fasterxml.jackson.core.JsonParseException;
-import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 // TODO: Replace all sysouts with logging
@@ -53,13 +52,24 @@ public class UserInputListenerService {
     @GET
     @Path("test")
     public Response testSomething() {
-	return Response.ok("hello\nDoes this work?", MediaType.TEXT_PLAIN_TYPE).build();
+	return Response.ok("Hello\nService is up!", MediaType.TEXT_PLAIN_TYPE).build();
     }
 
+    /**
+     * Makes a call to the specified user, and initialises the audio to be
+     * played when the user picks up
+     * 
+     * @param input
+     *            A String containing the JSON representation of
+     *            {@link com.followapp.CallDetails}
+     * @throws JsonParseException
+     *             when the input string is not valid JSON
+     * @throws IOException
+     */
     @POST
     @Path("call")
     @Consumes(MediaType.APPLICATION_JSON)
-    public void callUser(String input) throws JsonParseException, JsonMappingException, IOException {
+    public void callUser(String input) throws JsonParseException, IOException {
 	System.out.println("[call] Got JSON input: " + input);
 
 	ObjectMapper mapper = new ObjectMapper();
@@ -72,26 +82,42 @@ public class UserInputListenerService {
 	CallingService.callUser(callDetails.getPhoneNumber());
     }
 
-    public void generateAudioMessage(String phoneNumber) throws IOException {
-	if (!audioMap.containsKey(phoneNumber)) {
-	    CallDetails callDetails = callDetailMap.get(phoneNumber);
+    /**
+     * Given a phone number, get call details from the callDetailMap, which
+     * contains the guardian name, child name, vaccine name, etc and generate
+     * audio URL's from them *
+     * 
+     * @param phoneNumber
+     *            The phone number which has been called
+     */
+    private void generateAudioMessage(String phoneNumber) {
+	CallDetails callDetails = callDetailMap.get(phoneNumber);
 
-	    URL guardianNameUrl = createAudioUrl(callDetails.getGuardianName());
-	    URL childNameUrl = createAudioUrl(callDetails.getChildName());
-	    URL vaccineUrl = createAudioUrl(callDetails.getVaccineName());
-	    // TODO: URL dateUrl =
-	    // createAudioUrl(callDetails.getDateForVaccine());
-
-	    audioMap.put(callDetails.getPhoneNumber(), Arrays.asList(guardianNameUrl, childNameUrl, vaccineUrl));
-	}
+	URL guardianNameUrl = createAudioUrl(callDetails.getGuardianName());
+	URL childNameUrl = createAudioUrl(callDetails.getChildName());
+	URL vaccineUrl = createAudioUrl(callDetails.getVaccineName());
+	URL dayUrl = createAudioUrl(callDetails.getVaccineDay());
+	URL monthUrl = createAudioUrl(callDetails.getVaccineMonth());
+	URL yearUrl = createAudioUrl(callDetails.getVaccineYear());
+	URL promptUrl = createAudioUrl("prompt");
+	
+	audioMap.put(callDetails.getPhoneNumber(),
+		Arrays.asList(guardianNameUrl, childNameUrl, vaccineUrl, dayUrl, monthUrl, yearUrl, promptUrl));
     }
 
-    public URL createAudioUrl(String word) {
+    /**
+     * Create an audio URL from the given word, by prepending the storage
+     * solution path to it, and appending the .wav file format to it
+     * 
+     * @param word
+     *            The word for which the audio is required
+     * @return A URL pointing to the path that MAY contain the audio resource
+     */
+    private URL createAudioUrl(String word) {
 	URL wordUrl = null;
 	try {
 	    wordUrl = new URL(audioBasePath + word + ".wav");
 	} catch (MalformedURLException mue) {
-	    // TODO: Try to create a URL using the voicerss API
 	    mue.printStackTrace();
 	}
 	return wordUrl;
@@ -128,14 +154,13 @@ public class UserInputListenerService {
      * @param user
      * @return
      * @throws IOException
-     * @throws UnsupportedAudioFileException
      */
     @GET
     @Path("audioresponse")
     @Produces(MediaType.TEXT_PLAIN)
     public Response getAudioResponse(@QueryParam("CallSid") String callSid, @QueryParam("From") String from,
 	    @QueryParam("To") String exotelNumber, @QueryParam("DialWhomNumber") String beingCalled,
-	    @Context UriInfo uriInfo) throws UnsupportedAudioFileException, IOException {
+	    @Context UriInfo uriInfo) throws IOException {
 
 	System.out.println("[audioresponse] CallSid: " + callSid);
 	System.out.println("[audioresponse] From: " + from);
@@ -150,6 +175,11 @@ public class UserInputListenerService {
 	return response;
     }
 
+    /**
+     * This is only for the sake of testing the Exotel flow in case the actual
+     * service is not up Or the relevant audio files have not yet been uploaded
+     * to the storage solution
+     */
     @GET
     @Path("mockaudioresponse")
     @Produces(MediaType.TEXT_PLAIN)
@@ -185,7 +215,7 @@ public class UserInputListenerService {
      *            The string that will be used to separate two items
      * @return A string representation of the collection
      */
-    public <P> String join(List<P> items, String separator) {
+    private <P> String join(List<P> items, String separator) {
 	StringBuilder sb = new StringBuilder();
 	for (P item : items) {
 	    sb.append(item.toString()).append(separator);

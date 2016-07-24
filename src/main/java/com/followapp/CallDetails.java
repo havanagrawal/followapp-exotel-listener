@@ -2,6 +2,12 @@ package com.followapp;
 
 import javax.xml.bind.annotation.XmlRootElement;
 
+/**
+ * A class that represents the JSON object equivalent
+ * of the parameters that must be sent on the "call" endpoint
+ * 
+ * TODO: Add verification of parameters
+ */
 @XmlRootElement
 public class CallDetails {
 
@@ -9,8 +15,12 @@ public class CallDetails {
     private String guardianName;
     private String childName;
     private String vaccineName;
-    private String dateForVaccine;
+    private String dateForVaccine;		// Must be of the form dd mon YYYY
 
+    private String vaccineDay;
+    private String vaccineMonth;
+    private String vaccineYear;
+    
     public String getPhoneNumber() {
 	return phoneNumber;
     }
@@ -49,5 +59,25 @@ public class CallDetails {
 
     public void setDateForVaccine(String dateForVaccine) {
 	this.dateForVaccine = dateForVaccine;
+	setVaccineDayComponents(dateForVaccine);
+    }
+    
+    private void setVaccineDayComponents(String dateForVaccine) {
+	String[] dateComponents = dateForVaccine.split(" ");
+	this.vaccineDay = dateComponents[0];
+	this.vaccineMonth = dateComponents[1];
+	this.vaccineYear = dateComponents[2];
+    }
+    
+    public String getVaccineDay() {
+        return vaccineDay;
+    }
+
+    public String getVaccineMonth() {
+        return vaccineMonth;
+    }
+
+    public String getVaccineYear() {
+        return vaccineYear;
     }
 }
